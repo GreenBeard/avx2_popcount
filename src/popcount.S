@@ -1,6 +1,7 @@
 default rel
 
 ; todo see if vpsrlw, or vpsrldq is faster
+; well they appear to be the same size, and speed
 %define USE_BYTE_SHIFT 1
 
 ; This is a helper macro for computing popcount
@@ -261,10 +262,10 @@ popcount_asm:
 
   paddw xmm0, xmm8
 
-  pextrw rsi, xmm0, 0
+  pextrw esi, xmm0, 0
   add rax, rsi
   lea rdi, [rdi + 8 * 32]
-  add rcx, -1
+  dec rcx
   jnz .loop
 
 exit:
