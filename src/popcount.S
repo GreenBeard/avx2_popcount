@@ -3,6 +3,8 @@ default rel
 ; todo see if vpsrlw, or vpsrldq is faster
 ; well they appear to be the same size, and speed
 %define USE_BYTE_SHIFT 1
+; Horizontal add seems slower which isn't what I expected
+%define USE_HORIZONTAL_ADD 0
 
 ; This is a helper macro for computing popcount
 ; the even registers hold the partial results
@@ -22,6 +24,9 @@ SECTION .data
 a0: db 0x55
 a1: db 0x33
 a2: db 0x0f
+%if USE_HORIZONTAL_ADD
+a3: dw 0x00ff
+%endif
 
 SECTION .text
 global popcount_asm
@@ -167,6 +172,44 @@ popcount_asm:
   ymm_sum_helper
   ; [... 000xxxxx000vvvvv]
 
+%if USE_HORIZONTAL_ADD
+  vpbroadcastw ymm15, [a3]
+  vpand ymm0, ymm0, ymm15
+  vpand ymm2, ymm2, ymm15
+  vpand ymm4, ymm4, ymm15
+  vpand ymm6, ymm6, ymm15
+  vpand ymm8, ymm8, ymm15
+  vpand ymm10, ymm10, ymm15
+  vpand ymm12, ymm12, ymm15
+  vpand ymm14, ymm14, ymm15
+  vphaddw ymm0, ymm0, ymm0
+  vphaddw ymm2, ymm2, ymm2
+  vphaddw ymm4, ymm4, ymm4
+  vphaddw ymm6, ymm6, ymm6
+  vphaddw ymm8, ymm8, ymm8
+  vphaddw ymm10, ymm10, ymm10
+  vphaddw ymm12, ymm12, ymm12
+  vphaddw ymm14, ymm14, ymm14
+  vphaddw ymm0, ymm0, ymm0
+  vphaddw ymm2, ymm2, ymm2
+  vphaddw ymm4, ymm4, ymm4
+  vphaddw ymm6, ymm6, ymm6
+  vphaddw ymm8, ymm8, ymm8
+  vphaddw ymm10, ymm10, ymm10
+  vphaddw ymm12, ymm12, ymm12
+  vphaddw ymm14, ymm14, ymm14
+  vphaddw ymm0, ymm0, ymm0
+  vphaddw ymm2, ymm2, ymm2
+  vphaddw ymm4, ymm4, ymm4
+  vphaddw ymm6, ymm6, ymm6
+  vphaddw ymm8, ymm8, ymm8
+  vphaddw ymm10, ymm10, ymm10
+  vphaddw ymm12, ymm12, ymm12
+  vphaddw ymm14, ymm14, ymm14
+  ; there are some garbage bits above the bottom 16 bits which don't matter (in
+  ; each of the two 128 bit chunks)
+  ; [... ...0000000vvvvvvvvv]
+%else
 %if USE_BYTE_SHIFT
   vpsrldq ymm1, ymm0, 2
   vpsrldq ymm3, ymm2, 2
@@ -233,6 +276,8 @@ popcount_asm:
   vpand ymm10, ymm10, ymm15
   vpand ymm12, ymm12, ymm15
   vpand ymm14, ymm14, ymm15
+%endif
+
   vextracti128 xmm1, ymm0, 1
   vextracti128 xmm3, ymm2, 1
   vextracti128 xmm5, ymm4, 1
@@ -249,8 +294,6 @@ popcount_asm:
   paddw xmm10, xmm11
   paddw xmm12, xmm13
   paddw xmm14, xmm15
-  ; there are some garbage bits in the upper half of the ymm registers which don't matter
-  ; [... ...0000000vvvvvvvvv]
 
   paddw xmm0, xmm2
   paddw xmm4, xmm6
